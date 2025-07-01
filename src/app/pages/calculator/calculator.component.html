@@ -1,0 +1,47 @@
+<div class="container">
+  <mat-card class="mat-elevation-z12">
+    <mat-card-content>
+      <div class="display">
+        <p class="summary" *ngIf="summary">{{ summary | operatorSymbol }}</p>
+        <p class="result">{{ expression | operatorSymbol }}</p>
+      </div>
+
+      <mat-divider [inset]="true"></mat-divider>
+
+      <mat-grid-list class="keyboard" cols="4" rowHeight="84px">
+        <div>
+          <mat-grid-tile *ngFor="let key of ['AC','^', '/']; first as isClear">
+            <button mat-flat-button
+                    (click)="isClear ? clearDisplay() : onOpClicked(key)"
+                    [color]="isClear ? 'primary' : 'accent'">{{ isClear ? key : (key | operatorSymbol) }}
+            </button>
+          </mat-grid-tile>
+          <mat-grid-tile>
+            <button mat-flat-button #backspace (click)="onBackSpaceClicked()" color="primary">
+              <mat-icon>backspace</mat-icon>
+            </button>
+          </mat-grid-tile>
+        </div>
+
+        <div *ngFor="let row of [['7', '8', '9', '*'], ['4', '5', '6', '-'], ['1', '2', '3', '+']]">
+          <mat-grid-tile *ngFor="let key of row; last as isOperator">
+            <button mat-flat-button
+                    (click)="isOperator ? onOpClicked(key) : onNumClicked(key)"
+                    [color]="isOperator ? 'accent' : null">{{ isOperator ? (key | operatorSymbol) : key }}
+            </button>
+          </mat-grid-tile>
+        </div>
+
+        <div>
+          <mat-grid-tile *ngFor="let key of ['0', '.', '=']; last as isEquals; first as isZero"
+                         [colspan]="isEquals ? 2 : 1">
+            <button mat-flat-button
+                    (click)="isEquals ? onEqualsClicked() : isZero ? onNumClicked(key) : onDecimalClicked()"
+                    [color]="isEquals ? 'primary' : null">{{ key }}
+            </button>
+          </mat-grid-tile>
+        </div>
+      </mat-grid-list>
+    </mat-card-content>
+  </mat-card>
+</div>

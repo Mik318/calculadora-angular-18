@@ -1,0 +1,76 @@
+.mat-mdc-fab {
+  box-shadow: none !important;
+}
+
+.container {
+  width: 100%;
+
+  .keyboard {
+    button {
+      width: 100%;
+      height: 80%;
+      border-radius: 70px;
+      font-size: xx-large;
+      font-weight: 500;
+    }
+    .mat-unthemed{
+      background: ghostwhite;
+    }
+  }
+
+  .display {
+    height: 15vh;
+    padding-right: 16px;
+    //min-height: 168px;
+    //max-height: 252px;
+    text-align: right;
+    font-size: x-large;
+    overflow: auto;
+    background: ghostwhite;
+
+    .summary {
+      background: ghostwhite;
+      opacity: 0.33;
+      font-size: large;
+    }
+    .result{
+      font-size: xx-large;
+    }
+
+  }
+}
+
+@media(max-width: 768px) {
+  mat-card {
+    border-radius: 0px;
+    box-shadow: 0 4px 2px -2px rgba(0, 0, 0, 0.2);
+  }
+}
+
+// Screens over 769px
+@media(min-width: 769px) {
+  .container {
+    width: 650px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 5%;
+    margin-bottom: 50px;
+
+    .display {
+      font-size: xx-large;
+
+      .summary {
+        font-size: xx-large;
+      }
+      .result{
+        font-size: xx-large;
+      }
+    }
+
+    .keyboard {
+      button {
+        font-size: xx-large;
+      }
+    }
+  }
+}

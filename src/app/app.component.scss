@@ -1,0 +1,35 @@
+.calculator-container {
+  width: 300px;
+  margin: auto;
+  padding: 20px;
+  background-color: var(--mat-background);
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.display {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+
+  input {
+    width: 100%;
+    font-size: 1.5rem;
+    text-align: right;
+    padding: 10px;
+    border: none;
+    background: transparent;
+  }
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+
+  button {
+    font-size: 1.2rem;
+    padding: 10px;
+    border-radius: 8px;
+  }
+}
