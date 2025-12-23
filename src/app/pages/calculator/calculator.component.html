@@ -2,8 +2,8 @@
   <mat-card class="mat-elevation-z12">
     <mat-card-content>
       <div class="display">
-        <p class="summary" *ngIf="summary">{{ summary | operatorSymbol }}</p>
-        <p class="result">{{ expression | operatorSymbol }}</p>
+        <p class="summary" *ngIf="summary">{{ summary() | operatorSymbol }}</p>
+        <p class="result">{{ expression() | operatorSymbol }}</p>
       </div>
 
       <mat-divider [inset]="true"></mat-divider>

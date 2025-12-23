@@ -1,4 +1,4 @@
-import {Component, OnInit, QueryList, ViewChild, ViewChildren} from '@angular/core';
+import {Component, OnInit, QueryList, ViewChild, ViewChildren, signal, WritableSignal} from '@angular/core';
 import {MatCardModule} from "@angular/material/card";
 import {FormsModule} from "@angular/forms";
 import {CommonModule} from "@angular/common";
@@ -7,7 +7,6 @@ import {MatButton, MatButtonModule} from "@angular/material/button";
 import {MatIconModule} from "@angular/material/icon";
 import {MatDivider} from "@angular/material/divider";
 import {MatGridList, MatGridTile} from "@angular/material/grid-list";
-import {RippleRef} from "@angular/material/core";
 import {MatSnackBar} from "@angular/material/snack-bar";
 import {OperatorSymbolPipe} from "../../shared/pipes/operator-symbol.pipe";
 import {evaluate} from "mathjs";
@@ -36,15 +35,14 @@ const OPERATORS: RegExp = /[-+*^\/]/;
   styleUrl: './calculator.component.scss'
 })
 export class CalculatorComponent implements OnInit{
-  summary: string = ''; // Inicialización
-  expression: string = '0'; // Inicialización
-  rippleRef: RippleRef | undefined = undefined; // Inicialización
+  // Usamos Signals para estado reactivo
+  summary: WritableSignal<string> = signal('');
+  expression: WritableSignal<string> = signal('0');
 
   @ViewChild('backspace') backspace!: MatButton;
   @ViewChildren(MatButton) matBtns!: QueryList<MatButton>;
   constructor(
-    private snackBar: MatSnackBar,
-    private opPipe: OperatorSymbolPipe
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit() {
@@ -133,14 +131,14 @@ export class CalculatorComponent implements OnInit{
    * onNumClicked('5'); // Actualiza la expresión a "5"
    */
   onNumClicked(num: string) {
-    // El último número(s) que sigue a un operador
-    const lastNum = this.expression.split(OPERATORS).pop();
+    // Leemos el último número después del operador
+    const lastNum = this.expression().split(OPERATORS).pop();
 
     if (lastNum === '0') {
-      // Evita números con ceros a la izquierda
-      this.expression = this.expression.slice(0, -1) + num;
+      // Reemplazamos el último '0' por el nuevo número
+      this.expression.update(prev => prev.slice(0, -1) + num);
     } else {
-      this.expression += num;
+      this.expression.update(prev => prev + num);
     }
   }
 
@@ -166,18 +164,17 @@ export class CalculatorComponent implements OnInit{
    * onOpClicked('%'); // Actualiza la expresión a "20%*"
    */
   onOpClicked(operator: string) {
-    const last = this.expression[this.expression.length - 1];
+    const last = this.expression()[this.expression().length - 1];
 
-    // Si el operador es '%', lo reemplazamos por 'x' (multiplicación)
+    // Si el operador es '%', lo convertimos a '%*' para tratarlo como porcentaje multiplicado
     if (operator === '%') {
       operator = '%*';
     }
 
-    // Si el último carácter es un operador o un punto decimal, reemplazamos el operador
     if (last.match(OPERATORS) || last === '.') {
-      this.expression = this.expression.slice(0, -1) + operator;
+      this.expression.update(prev => prev.slice(0, -1) + operator);
     } else {
-      this.expression += operator;
+      this.expression.update(prev => prev + operator);
     }
   }
 
@@ -205,14 +202,12 @@ export class CalculatorComponent implements OnInit{
    * onDecimalClicked(); // No hace nada, ya que el último carácter es un operador.
    */
   onDecimalClicked() {
-    // El último número(s) que sigue a un operador
-    const lastNum = this.expression.split(OPERATORS).pop();
+    const expr = this.expression();
+    const lastNum = expr.split(OPERATORS).pop();
+    const lastChar = expr[expr.length - 1];
 
-    if (
-      !this.expression[this.expression.length - 1].match(OPERATORS) &&
-      lastNum && !lastNum.includes('.')
-    ) {
-      this.expression += '.';
+    if (!lastChar.match(OPERATORS) && lastNum && !lastNum.includes('.')) {
+      this.expression.update(prev => prev + '.');
     }
   }
 
@@ -237,12 +232,10 @@ export class CalculatorComponent implements OnInit{
    * onBackSpaceClicked(); // Llama a `clearDisplay()` y borra la expresión.
    */
   onBackSpaceClicked() {
-    if (this.expression.length === 1) {
-      // Si la expresión solo tiene un carácter, se borra completamente
+    if (this.expression().length === 1) {
       this.clearDisplay();
     } else {
-      // Elimina el último carácter de la expresión
-      this.expression = this.expression.slice(0, -1);
+      this.expression.update(prev => prev.slice(0, -1));
     }
   }
 
@@ -274,31 +267,28 @@ export class CalculatorComponent implements OnInit{
    * onEqualsClicked(); // Muestra un mensaje de error por paréntesis desbalanceados.
    */
   onEqualsClicked() {
-    const last = this.expression[this.expression.length - 1];
+    const last = this.expression()[this.expression().length - 1];
 
-    // Verifica que el último carácter no sea un operador ni un punto decimal
     if (!(last.match(OPERATORS) || last === '.')) {
-      // Guarda la expresión actual en el resumen
-      this.summary = this.expression;
+      // Guardamos la expresión anterior en el resumen
+      this.summary.set(this.expression());
 
-      // Verifica si los paréntesis están balanceados
+      // Verificamos paréntesis balanceados
       if (!this.checkParens()) {
-        this.invalidExpression('Unbalanced Parentheses'); // Muestra error si no están balanceados
+        this.invalidExpression('Unbalanced Parentheses');
         return;
       }
 
       try {
-        // Evalúa la expresión
-        const ans = evaluate(this.expression);
+        const ans = evaluate(this.expression());
 
-        // Verifica si el resultado es un número finito
         if (isFinite(ans)) {
-          this.expression = ans.toString(); // Muestra el resultado
+          this.expression.set(ans.toString());
         } else {
-          this.invalidExpression(ans); // Muestra error si el resultado no es finito
+          this.invalidExpression(ans);
         }
       } catch (e) {
-        this.invalidExpression(); // Muestra error si ocurre una excepción al evaluar
+        this.invalidExpression();
       }
     }
   }
@@ -328,57 +318,32 @@ export class CalculatorComponent implements OnInit{
    * checkParens(); // Devuelve `true`.
    */
   checkParens(): boolean {
-    const parenStack: string[] = []; // Pila para rastrear paréntesis de apertura
+    const parenStack: string[] = [];
 
-    // Recorre cada carácter de la expresión
-    for (const value of [...this.expression]) {
+    for (const value of [...this.expression()]) {
       if (value === '(') {
-        // Si encuentra un '(', lo agrega a la pila
         parenStack.push(value);
       } else if (value === ')') {
-        // Si encuentra un ')', verifica si hay un '(' correspondiente en la pila
         if (parenStack.length > 0) {
-          parenStack.pop(); // Elimina el '(' correspondiente de la pila
+          parenStack.pop();
         } else {
-          // Si no hay '(' correspondiente, los paréntesis no están balanceados
           return false;
         }
       }
     }
 
-    // Si la pila está vacía, los paréntesis están balanceados
     return parenStack.length === 0;
   }
 
   /**
    * Maneja una expresión inválida en la calculadora.
-   *
-   * Esta función restablece la expresión actual a '0' y muestra un mensaje de error
-   * en una barra de notificaciones (snackbar). El mensaje de error puede incluir
-   * una descripción adicional proporcionada por el parámetro `errMsg`.
-   *
-   * @param {string} [errMsg] - Mensaje de error opcional que describe la razón de la invalidación.
-   *
-   * @example
-   * // Si la expresión es inválida y no se proporciona un mensaje de error:
-   * invalidExpression(); // Muestra "Expresión inválida" en la snackbar.
-   *
-   * @example
-   * // Si la expresión es inválida debido a paréntesis desbalanceados:
-   * invalidExpression('Paréntesis desbalanceados'); // Muestra "Expresión inválida: Paréntesis desbalanceados" en la snackbar.
-   *
-   * @example
-   * // Si la expresión es inválida debido a una división por cero:
-   * invalidExpression('División por cero'); // Muestra "Expresión inválida: División por cero" en la snackbar.
    */
   invalidExpression(errMsg?: string) {
-    // Restablece la expresión a '0'
-    this.expression = '0';
+    this.expression.set('0');
 
-    // Muestra un mensaje de error en la snackbar
     this.snackBar.open(
-      `Expresión inválida${errMsg ? ': ' + errMsg : ''}`, // Mensaje de error
-      undefined, // Texto del botón de acción (no se usa aquí)
+      `Expresión inválida${errMsg ? ': ' + errMsg : ''}`,
+      undefined,
       {
         duration: 3000,
         verticalPosition: 'bottom',
@@ -387,7 +352,8 @@ export class CalculatorComponent implements OnInit{
   }
 
   clearDisplay() {
-    this.expression = '0';
-    this.summary = '';
+    this.expression.set('0');
+    this.summary.set('');
   }
 }
+
